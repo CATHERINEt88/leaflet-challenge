@@ -1,133 +1,128 @@
-//create the tile layer that will be the background of our map
-var satellite = L.tileLayer("https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
-  attribution: "© <a href='https://www.mapbox.com/about/maps/'>Mapbox</a> © <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> <strong><a href='https://www.mapbox.com/map-feedback/' target='_blank'>Improve this map</a></strong>",
-  tileSize: 512,
+//define the tilelayer
+var satellite = L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
+  attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
   maxZoom: 18,
-  zoomOffset: -1,
-  id: "mapbox/satellite-v9",
+  id: "satellite-v9",
   accessToken: API_KEY
-})
-
-var grayscale = L.tileLayer("https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
-  attribution: "© <a href='https://www.mapbox.com/about/maps/'>Mapbox</a> © <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> <strong><a href='https://www.mapbox.com/map-feedback/' target='_blank'>Improve this map</a></strong>",
-  tileSize: 512,
-  maxZoom: 18,
-  zoomOffset: -1,
-  id: "mapbox/light-v10",
-  accessToken: API_KEY
-})
-
-var outdoors = L.tileLayer("https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
-  attribution: "© <a href='https://www.mapbox.com/about/maps/'>Mapbox</a> © <a href='http://www.openstreetmap.org/copyright'>OpenStreetMap</a> <strong><a href='https://www.mapbox.com/map-feedback/' target='_blank'>Improve this map</a></strong>",
-  tileSize: 512,
-  maxZoom: 18,
-  zoomOffset: -1,
-  id: "mapbox/outdoors-v11",
-  accessToken: API_KEY
-})
-
-// create the basemap objects
-var baseMaps = {
-	"Satellite": satellite,
-	"Grayscale" : grayscale,
-	"Outdoors" : outdoors
-}
-
-// Initialise the layergroups
-var layers = {
-	TECTONIC_LINE: new L.LayerGroup(),
-	EARTHQUAKES: new L.LayerGroup()
-  };
-
-// Define a map object
-var myMap = L.map("map", {center: [23.6978, 120.9605], 
-zoom: 5,
-layers:[layers.TECTONIC_LINE,	layers.EARTHQUAKES]
 });
 
-// Add satellite layer
+var lightmap = L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
+  attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
+  maxZoom: 18,
+  id: "light-v10",
+  accessToken: API_KEY
+});
+
+var outdoors = L.tileLayer("https://api.mapbox.com/styles/v1/mapbox/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}", {
+  attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
+  maxZoom: 18,
+  id: "outdoors-v11",
+  accessToken: API_KEY
+});
+
+//Set the base layers
+var baseMaps = {
+	"Satellite Map" : satellite,
+	"Light Map" : lightmap,
+	"Outdoors" :outdoors
+};
+
+//Initialising all the layergroups that we are using
+var layers = {
+	earthquakes : new L.LayerGroup(),
+	tectonic : new L.LayerGroup()
+};
+
+//Define the map object
+var myMap = L.map("map", {
+	center: [37.09, -75.71],
+	zoom:5,
+	layers : [
+		layers.earthquakes,
+		layers.tectonic
+	]
+});
+
+//Add the satelite layer to the map
 satellite.addTo(myMap);
 
-// Create an overlay object to add to the layer control
+//create the overlay object
 var overlayMaps = {
-
-  "Earthquakes":layers.EARTHQUAKES,
-  "Fault Lines": layers.TECTONIC_LINE
+	"Tectonic Plates" : layers.tectonic,
+	"Earthquakes" : layers.earthquakes
 };
 
-// Add the layer control to the map
+
+//add the layer control to the map
 L.control.layers(baseMaps, overlayMaps, {
 	collapsed: false
-  }).addTo(myMap);
+}).addTo(myMap);
 
-//DATA SOURCE
+
+//url where the data comes from
 var tectonicUrl = "https://raw.githubusercontent.com/fraxen/tectonicplates/master/GeoJSON/PB2002_boundaries.json";
-var baseUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
+var earthquakeUrl = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson";
+
+// Perform a call to the tectonic endpoint
+d3.json(tectonicUrl).then(function(data){
+
+//grab the reference data of features
+var techfeature = data.features;
+for (var i = 0; i < techfeature.length; i++){
+	var techcoordinate = techfeature[i].geometry.coordinates;
+	var coordinateinfo = [];
+
+	coordinateinfo.push(
+		techcoordinate.map(d => [d[1],d[0]])
+	);
+
+	//Create the tectonic lines
+
+var lines = L.polyline(coordinateinfo, {color: "red"});
+
+//add the lines to the appropriate layer
+lines.addTo(layers.tectonic);
 
 
-//load the data from the url
-d3.json(tectonicUrl).then(function(data) {
-
-	// Grab the tectonic data
-	var mainFeatures = data.features;
-
-	for (var i = 0; i < mainFeatures.length; i++) {
-
-		//store the coordinates into a variable
-		var coordinates = mainFeatures[i].geometry.coordinates;
-
-		//declare this array to store the coordinates
-		var mainCoordinates = [];
-
-		mainCoordinates.push(coordinates.map(coordinate => [coordinate[1], coordinate[0]]));
-
-		// Create tectonic lines
-		var lines = L.polyline(mainCoordinates, {color: "rgb(255, 165, 0)"});
-		
-		// Add the new marker to the appropriate layer
-		lines.addTo(layers.TECTONIC_LINE);
-	};
-});
-
-
-// Return a specific colors based on the magnitude
-function circleColor(d) {
-	return d >= 5 ? "#DE3163":
-			d >= 4 ? "#FF7F50":
-			d >= 3 ? "#9FE2BF":
-			d >= 2 ? "#CCCCFF" :
-			d >= 1 ? "#FFBF00" :
-			"#DFFF00"  	;
 };
 
-// Perform an API call to the earthquake data endpoint
-d3.json(baseUrl).then(function(info) {
-	
-	// Grab the features earthquake data
-	var earthquake = info.features;
+});
 
-	for (var i = 0; i < earthquake.length; i++) {
-		
-		//Define variable magnitudes and coordinates of the earthquakes
-		var magnitudes = earthquake[i].properties.mag;
-		var coordinates = earthquake[i].geometry.coordinates;
+//define a function to return the color of the circles according to the earthquake magnitude
+function circlecolor(d) {
+return d >= 5 ? "#FF4933" :
+d >= 4 ? "#FF7733" :
+d >= 3 ? "#FF9933" :
+d >= 2 ? "#FFC733" :
+d >= 1 ? "#F3FF33" :
+"#E5E8E8";
+};
 
-		// Add circles and bind PopUps to map
-		var circleMarkers = L.circle([coordinates[1], coordinates[0]], {
-								fillOpacity: 0.8,
-								fillColor: circleColor(magnitudes),
-								color: circleColor(magnitudes),
-								stroke: false,
-								radius: magnitudes * 17000
-	});
+//load the data from another URL
+d3.json(earthquakeUrl).then(function(general){
+	//grab the reference to the earthquake data
+	var earthquakedata = general.features;
 
-		// Add the new marker to the appropriate layer
-		circleMarkers.addTo(layers.EARTHQUAKES);
+	for (var i = 0; i<earthquakedata.length; i++){
+		var mag = earthquakedata[i].properties.mag;
+		var coordinates = earthquakedata[i].geometry.coordinates;
 
-		// Bind a popup to the marker that will  display on click. This will be rendered as HTML
-		circleMarkers.bindPopup("<h3>" + earthquake[i].properties.place +
-										"</h3><hr><p>" + new Date(earthquake[i].properties.time) + 
-										'<br>' + '[' + coordinates[1] + ', ' + coordinates[0] + ']' + "</p>");
+		//add circles and bind Popups to map
+
+var circlemarker = L.circle([coordinates[1],coordinates[0]],{
+			fillOpacity : 0.8,
+			fillColor : circlecolor(mag),
+			color: circlecolor(mag),
+			stroke: false,
+			radius:mag *18000
+		});
+
+	//Add the new marker to the layer
+	circlemarker.addTo(layers.earthquakes);	
+
+	//bind a popup to the marker that will display on click. 
+	circlemarker.bindPopup("<h3>"+earthquakedata[i].properties.place+ "</h3><hr><p>" 
+	+ new Date (earthquakedata[i].properties.time) + "<br>" + "[ "+coordinates[1]+" , "+ coordinates[0] +" ]" + "</p>");
 	};
 });
 
@@ -141,7 +136,7 @@ legend.onAdd = function () {
 	// loop through our magnitude intervals and generate a label with a colored square for each interval
 	for (var i = 0; i < grades.length; i++) {
 		div.innerHTML +=
-			'<i style="background:' + circleColor(grades[i]) + '"></i> ' +
+			'<i style="background:' + circlecolor(grades[i]) + '"></i> ' +
 			grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
 	}
 	return div;

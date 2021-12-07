@@ -1,7 +1,7 @@
 // Create map object
 var myMap = L.map("map", {
-	center: [23.6978, 120.9605],
-	zoom: 5
+	center: [37.09, -75.71],
+	zoom:5
 });
   
 // Adding light mode tile layer to the map
@@ -22,12 +22,12 @@ d3.json(baseUrl).then(function(data) {
 
 // Return a specific colors based on the magnitude
 function circleColor(d) {
-	return d >= 5 ? "#DE3163":
-			d >= 4 ? "#FF7F50":
-			d >= 3 ? "#9FE2BF":
-			d >= 2 ? "#CCCCFF" :
-			d >= 1 ? "#FFBF00" :
-			"#DFFF00"  	;
+	return d >= 5 ? "#FF4933" :
+	d >= 4 ? "#FF7733" :
+	d >= 3 ? "#FF9933" :
+	d >= 2 ? "#FFC733" :
+	d >= 1 ? "#F3FF33" :
+	"#E5E8E8";;
 };
 
 	// Grab the features data
